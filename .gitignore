@@ -1,5 +1,6 @@
 _build
 server
 *~
+*.native
 web/js/jquery.js
 web/js/jcanvas.js

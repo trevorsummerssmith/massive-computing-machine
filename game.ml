@@ -1,19 +1,13 @@
-type character =
-    {
-      name : string;
-      posn : Posn.t ref;
-    }
-
 type tile =
     EmptyTile
   | Hole (* Cannot go through a hole *)
   | Hill (* Hills are harder to go over *)
-  | Character of character
+  | Character of Character.t
 
 type world =
   { 
     board : tile array array;
-    characters : (character list) ref; (* TODO remove mutability *)
+    characters : (Character.t list) ref; (* TODO remove mutability *)
     width : int;
     height : int
   }
@@ -81,27 +75,18 @@ let movement_cost = function
   | Hill -> 3
   | Character _ -> 99 (* Cannot walk through a character? But what if they move? *)
 
-let random_letter () : string =
-  Char.escaped (char_of_int (int_of_char 'a' + Random.int 26))
-
-let random_name () : string =
-  let len = (Random.int 20) + 4 in
-  String.concat "" (Array.to_list (Array.init len (fun _ -> random_letter ())))    
-
-let make_character () : character =
-  let name = random_name () in
-  { name = name; posn = ref Posn.nowhere }
-
 let random_posn world =
   let w = Random.int world.width in
   let h = Random.int world.height in
   (w, h)
 
-let make_randos world num : (Posn.t * character) list =
+let make_randos world num : Character.t list =
   let rec rando world num acc =
     if num > 0 then
-      let elem = (random_posn world, make_character ()) in
-      rando world (num-1) (elem::acc)
+      let name = Util.random_name () in
+      let posn = random_posn world in
+      let character = Character.create name posn in
+      rando world (num-1) (character::acc)
     else acc
   in
   rando world num []
@@ -140,15 +125,16 @@ let neighbors world (x, y) =
   let modified_coords = List.map (fun (dx, dy) -> (x+dx, y+dy)) neighbor_positions in
   List.map (chomp_coords world) modified_coords
 
-let make_move world character =
-  (** Randomly move. Bad function: mutates state of character AND world. *)
+let make_move world (mCharacter : MCharacter.t) =
+  (** Randomly move a character on the world.
+      Mutates the state of the world and the character.
+   *)
   let pick = Random.int 9 in
   let (x_delta, y_delta) = List.nth positions pick in
-  let (x,y) = !(character.posn) in
+  let (x,y) = MCharacter.posn mCharacter in
   let posn' = chomp_coords world (x+x_delta, y+y_delta) in
-  (* bad parts MUTABLE STATE XXX TODO *)
-  character.posn := posn';
-  update_tile world (Character character) posn';
+  MCharacter.set_posn mCharacter posn';
+  update_tile world (Character mCharacter) posn';
   (* Don't update with an empty tile if they didn't move! *)
   if ((x_delta, y_delta) <> (0,0)) then (* TODO can just bail earlier if delta is 0 *)
     update_tile world EmptyTile (x,y)
@@ -163,9 +149,8 @@ let make_world width height num_characters =
   (** Makes a world *)
   assert (num_characters <= width * height);
   let world = create_world width height in
-  let add_character (posn, character) = 
-    character.posn := posn;
-    update_tile world (Character character) posn;
+  let add_character character =
+    update_tile world (Character character) (Character.posn character);
     world.characters := character::(!(world.characters))
   in
   begin

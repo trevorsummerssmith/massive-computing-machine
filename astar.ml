@@ -1,4 +1,4 @@
-(** Find a path from start to goal on the world. Return the path.
+(** Find a path from start to goal on the board. Return the path.
 
     Astar is implemented with two datastructures:
       1) a hashtable that uses a datatype to represent if the element is
@@ -57,10 +57,10 @@ let heuristic (x1, y1) (x2, y2) =
   and dy = abs (y1 - y2) in
   d * max dx dy
 
-let movement_cost (world : Game.world) (x,y) =
+let movement_cost board posn =
   (* Current implementation the movement cost is the cost of the terrain. *)
-  let tile = world.board.(x).(y) in
-  Game.movement_cost tile
+  let tile = Board.get_tile board posn in
+  Board.tile_movement_cost tile
 
 let pqueue_min_exn pqueue =
   (** The priority queue interface is annoying. This wraps so that the minimum
@@ -81,7 +81,7 @@ let rec loc_chain_to_list location acc =
     Some parent -> loc_chain_to_list parent (location.posn::acc)
   | None -> location.posn::acc
 
-let find_path world start goal =
+let find_path board start goal =
   let visited : location Posn.Table.t = Posn.Table.create ()
   and pqueue : Posn.t Priority_queue.t = Priority_queue.create () in
   let add_to_open posn cost parent =
@@ -94,7 +94,7 @@ let find_path world start goal =
   in
   let process_neighbor current neighbor_posn =
     let option = (Hashtbl.find visited neighbor_posn) in
-    let cost = current.cost + (movement_cost world current.posn) in
+    let cost = current.cost + (movement_cost board current.posn) in
     match option with
       Some neighbor_location ->
       begin
@@ -117,7 +117,7 @@ let find_path world start goal =
 		      parent=current.parent;
 		      status=Closed} in
 	Hashtbl.replace visited ~key:current.posn ~data:closed;
-	let neighbors = Game.neighbors world current.posn in
+	let neighbors = Board.neighbors board current.posn in
 	List.iter ~f:(fun n -> process_neighbor current n) neighbors;
 	(* Done with the neighbors. Loop! *)
 	let next = pqueue_min_exn pqueue in

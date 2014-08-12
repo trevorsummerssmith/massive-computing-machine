@@ -13,15 +13,14 @@
 *)
 
 open OUnit
-open Game
 open Astar
 
 (* pretty print TODO this should live somewhere else. *)
 let _tile = function
-    EmptyTile -> "."
-  | Hole -> "o"
-  | Hill -> "^"
-  | Character _ -> "+"
+    Board.EmptyTile -> "."
+  | Board.Hole -> "o"
+  | Board.Hill -> "^"
+  | Board.Character _ -> "+"
 
 let _print_header length =
   Core.Std.eprintf "+";
@@ -31,19 +30,20 @@ let _print_header length =
   done;
   Core.Std.eprintf "+\n"
 
-let print_board world (f_overlay : Posn.t -> tile -> string -> string) =
-  _print_header world.width;
-  for y = 0 to (world.height-1) do
+let print_board board (f_overlay : Posn.t -> Board.tile -> string -> string) =
+  let (width, height) = Board.dimensions board in
+  _print_header width;
+  for y = 0 to (height-1) do
     (* New row start it *)
     Core.Std.eprintf "|";
-    for x = 0 to (world.width-1) do
-      let t = world.board.(x).(y) in
+    for x = 0 to (width-1) do
+      let t = Board.get_tile board (x,y) in
       let s = _tile t in
       Core.Std.eprintf "%s" (f_overlay (x,y) t s)
     done;
     Core.Std.eprintf "|\n"
   done;
-  _print_header world.width
+  _print_header width
 
 let rec print_path path =
   match path with
@@ -54,7 +54,7 @@ let overlay (path : Posn.t list) (g : Posn.t) t (s : string) : string =
   (* Print function to print the path on the board.
    Prints a '*' if there's a path, but only if there is no character there. *)
   match t with
-    Character _ -> s
+    Board.Character _ -> s
   | _ -> begin if (Core.Std.List.mem path g) then
 		 "*"
 	       else
@@ -63,12 +63,12 @@ let overlay (path : Posn.t list) (g : Posn.t) t (s : string) : string =
 (* end pretty print *)
 
 let _test ~holes ~hills ~start ~goal ~solution =
-  let world = Game.create_world 10 10 in
-  List.iter (fun posn -> update_tile world Hole posn) holes;
-  List.iter (fun posn -> update_tile world Hill posn) hills;
-  let path = find_path world start goal in
+  let board = MBoard.create (10, 10) in
+  List.iter (fun posn -> MBoard.set_tile board Hole posn) holes;
+  List.iter (fun posn -> MBoard.set_tile board Hill posn) hills;
+  let path = find_path board start goal in
   assert_equal path solution;
-  print_board world (overlay path);
+  print_board board (overlay path);
   print_path path
 
 let test_no_obstacles _ =

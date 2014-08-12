@@ -1,10 +1,11 @@
 (** Immutable Character *)
-module type CharacterSig = sig
+
+module type S = sig
     type t
     val create : string -> Posn.t -> t
     val name : t -> string
     val posn : t -> Posn.t
 end
 
-module T = (CharacterImpl.T : CharacterSig with type t = CharacterImpl.T.t)
+module T = (CharacterImpl : S with type t = CharacterImpl.t)
 include T

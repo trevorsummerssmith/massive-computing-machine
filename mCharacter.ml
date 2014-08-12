@@ -1,11 +1,11 @@
 (** MutableCharacter.
 
-    This should only be used in toplevel bookeeping code.
+    This should only be used by the Dynamo.
 *)
-module type MutableCharacterSig = sig
-    include Character.CharacterSig
+module type S = sig
+    include Character.S
     val set_posn : t -> Posn.t -> unit
 end
 
-module T = (CharacterImpl.T : MutableCharacterSig with type t = CharacterImpl.T.t)
+module T = (CharacterImpl : S with type t = CharacterImpl.t)
 include T

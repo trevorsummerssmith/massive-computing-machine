@@ -17,3 +17,14 @@ include Hashable.Make(T)
 
 let nowhere : t = (Int.max_value, Int.max_value)
 (** We need initialization and this comes up. *)
+
+let neighbor_deltas : t list =
+  [(-1, -1); (0, -1); (1, -1);
+   (-1, 0); (1, 0);
+   (-1, 1); (0, 1); (1, 1)]
+(** Possible relative moves, including not moving.
+    A list of length 8 with the following entries:
+   -1,-1  0,-1  1,-1
+    -1,0  here 1,0
+    -1,1  0,1  1,1
+*)

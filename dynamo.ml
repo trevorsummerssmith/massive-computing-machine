@@ -32,6 +32,26 @@ let make_randos posn num : (module Actor.S) list =
   let actor = make_actor (module CBStagnant) character in
   actor::(rando num [])
 
+let make_random_terrain (w,h) ~num_hills ~num_holes ~num_food : (MBoard.tile * Posn.t) list =
+  (* This will overwrite tiles.
+     For now we just take a number of tiles for these guys.
+     Later on we can deal with this.
+   *)
+  let num_tiles = w * h in
+  let total_tiles = num_hills + num_holes + num_food in
+  assert (total_tiles < num_tiles);
+  (* Now actually generate the tiles *)
+  let rec rando tile num acc =
+    if num > 0 then
+      let posn = Util.random_posn (w,h) in
+      rando tile (num-1) ((tile, posn)::acc)
+    else acc
+  in
+  let acc = rando MBoard.Hill num_hills [] in
+  let acc' = rando MBoard.Hole num_holes acc in
+  let acc'' = rando (MBoard.Food 1) num_food acc' in
+  acc''
+
 let make_world _ (width, height) num_characters =
   let mBoard = MBoard.create (width, height) in
   let (world : World.t) = {board = mBoard; actors = ref []} in
@@ -43,7 +63,12 @@ let make_world _ (width, height) num_characters =
     world.actors := (module A)::(!(world.actors))
   in
   begin
+    let terrain = make_random_terrain (MBoard.dimensions mBoard)
+				      ~num_hills:10 ~num_holes:10
+				      ~num_food:10
+    in
     List.iter ~f:add_actor (make_randos (width, height) num_characters);
+    List.iter ~f:(fun (tile, posn) -> MBoard.set_tile mBoard tile posn) terrain;
     world
   end
 

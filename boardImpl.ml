@@ -5,6 +5,7 @@ type tile = (* TODO should tile be defined elsewhere? *)
   | Hole (* Cannot go through a hole *)
   | Hill (* Hills are harder to go over *)
   | Character of Character.t
+  | Food of int
 
 type t =
     {
@@ -39,7 +40,8 @@ let neighbors board (x, y) =
 let tile_movement_cost = function
   (** How much to move to an adjacent square?
       This only depends upon terrain type. *)
-    EmptyTile -> 1
+    EmptyTile
+  | Food _ -> 1
   | Hole -> 99999
   | Hill -> 3
   | Character _ -> 99 (* Cannot walk through a character? But what if they move? *)
@@ -85,6 +87,7 @@ let serialize_tile tile = match tile with
   | Hole -> Ezjsonm.string "Hole"
   | Hill -> Ezjsonm.string "Hill"
   | Character c -> Ezjsonm.string c.name
+  | Food _ -> Ezjsonm.string "Food" (* TODO XXX *)
 
 let serialize (b : t) =
   let indices = filter_board (fun (x,y) -> b.board.(x).(y) <> EmptyTile) b

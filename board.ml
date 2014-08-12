@@ -6,6 +6,7 @@ module type S = sig
       | Hole (* Cannot go through a hole *)
       | Hill (* Hills are harder to go over *)
       | Character of Character.t
+      | Food of int
 
     val create : Posn.t -> t
     (** width,height -> board Tiles are initialized to EmptyTile *)

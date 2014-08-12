@@ -65,6 +65,41 @@ function draw_character(tx,ty,index) {
     });
 }
 
+function draw_hole(tx, ty) {
+    var coords = tile_to_canvas_coords(tx, ty);
+    console.log("Drawing hole");
+    $("#canvas-world").drawEllipse({
+	fillStyle: '#000',
+	x: coords[0], y: coords[1],
+	width: 10, height: 10,
+	fromCenter: false
+    });
+}
+
+function draw_hill(tx, ty) {
+    var coords = tile_to_canvas_coords(tx, ty);
+    console.log("Drawing hill");
+    $("#canvas-world").drawPolygon({
+	fillStyle: "#7F2626",
+	strokeWidth: 0,
+	sides: 3,
+	radius: 7,
+	x: coords[0]-2, y: coords[1]-1,
+	fromCenter: false
+    });
+}
+
+function draw_food(tx,ty) {
+    var coords = tile_to_canvas_coords(tx, ty);
+    console.log("Drawing food");
+    $("#canvas-world").drawRect({
+	fillStyle: "#00ff00",
+	x: coords[0], y: coords[1],
+	width: TILE_WIDTH, height: TILE_HEIGHT,
+	fromCenter: false
+    });
+}
+
 function draw_board(board) {
     // Empty it out
     $('#canvas-world').clearCanvas();
@@ -97,7 +132,20 @@ function draw_board(board) {
 	var tx = value[0];
 	var ty = value[1];
 	// name is value[2]
-	draw_character(tx, ty, index);
+	var type = value[2];
+	if (type == "Hole") {
+	    draw_hole(tx, ty);
+	}
+	else if (type == "Hill") {
+	    draw_hill(tx, ty);
+	}
+	else if (type == "Food") {
+	    draw_food(tx, ty);
+	}
+	else {
+	    // Character. Bad for now. Need to redo this.
+	    draw_character(tx, ty, index);
+	}
     });
 }
 

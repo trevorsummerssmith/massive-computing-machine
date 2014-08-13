@@ -1,5 +1,7 @@
 (** Implementation for both Board and MutableBoard *)
 
+open Core.Std
+
 type tile = (* TODO should tile be defined elsewhere? *)
     EmptyTile
   | Hole (* Cannot go through a hole *)
@@ -14,7 +16,7 @@ type t =
     }
 
 let create (width, height) =
-  let arr = Array.make_matrix width height EmptyTile in
+  let arr = Array.make_matrix ~dimx:width ~dimy:height EmptyTile in
   {board = arr; dimensions = (width, height)}
 
 let dimensions board = board.dimensions
@@ -34,8 +36,8 @@ let chomp_coords board (x, y) =
 
 let neighbors board (x, y) =
   (** Returns the 8 neighbors of a (x,y) in valid board coordinates. *)
-  let modified_coords = List.map (fun (dx, dy) -> (x+dx, y+dy)) Posn.neighbor_deltas in
-  List.map (chomp_coords board) modified_coords
+  let modified_coords = List.map ~f:(fun (dx, dy) -> (x+dx, y+dy)) Posn.neighbor_deltas in
+  List.map ~f:(chomp_coords board) modified_coords
 
 let tile_movement_cost = function
   (** How much to move to an adjacent square?
@@ -59,9 +61,9 @@ let all_indices (board : t) : (int * int) list =
   in
   List.rev (loop 0 0 [])
 
-let filter_board f (board : t) : (int * int ) list =
+let filter_board (board : t) ~f : Posn.t list =
   let indices = all_indices board in
-  List.filter f indices
+  List.filter ~f indices
 
 let assert_bounds board (x, y) : unit =
   let (w, h) = board.dimensions in
@@ -90,9 +92,9 @@ let serialize_tile tile = match tile with
   | Food _ -> Ezjsonm.string "Food" (* TODO XXX *)
 
 let serialize (b : t) =
-  let indices = filter_board (fun (x,y) -> b.board.(x).(y) <> EmptyTile) b
+  let indices = filter_board b ~f:(fun (x,y) -> b.board.(x).(y) <> EmptyTile)
   in
   let to_json (x,y) =
     Ezjsonm.list (fun i->i) [Ezjsonm.int x; Ezjsonm.int y; serialize_tile b.board.(x).(y)]
   in
-  Ezjsonm.list (fun i -> i) (List.map to_json indices)
+  Ezjsonm.list (fun i -> i) (List.map ~f:to_json indices)

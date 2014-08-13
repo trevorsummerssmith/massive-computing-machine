@@ -65,6 +65,20 @@ function draw_character(tx,ty,index) {
     });
 }
 
+function draw_special_character(tx, ty) {
+    var coords = tile_to_canvas_coords(tx, ty);
+    console.log("Drawing special character");
+    $("#canvas-world").drawPolygon({
+	fillStyle: "#FFAD00",
+	strokeWidth: 0,
+	sides: 5,
+	concavity: 0.5,
+	radius: 8,
+	x: coords[0]-4, y: coords[1]-3,
+	fromCenter: false
+    });
+}
+
 function draw_hole(tx, ty) {
     var coords = tile_to_canvas_coords(tx, ty);
     console.log("Drawing hole");
@@ -141,6 +155,10 @@ function draw_board(board) {
 	}
 	else if (type == "Food") {
 	    draw_food(tx, ty);
+	}
+	else if (type == "hunter") {
+	    // FindFood Character
+	    draw_special_character(tx, ty);
 	}
 	else {
 	    // Character. Bad for now. Need to redo this.

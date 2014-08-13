@@ -28,6 +28,8 @@ module type S = sig
         So, an emptytile has cost 1. A hill might have cost 3.
      *)
 
+    val filter_board : t -> f:(Posn.t -> bool) -> Posn.t list
+
     val serialize : t -> Ezjsonm.t
     (** Serialize to json *)
 

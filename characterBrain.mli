@@ -5,7 +5,7 @@ type umwelt =
       character : Character.t;
     }
 
-type action = Move of Posn.t | DoNothing
+type action = Move of Posn.t | DoNothing | Eat
 
 module type S = sig
 

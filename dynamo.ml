@@ -28,8 +28,8 @@ let make_randos posn num : (module Actor.S) list =
       rando (num-1) (actor::acc)
     else acc
   in
-  let character = Character.create "foo" (5,5) in
-  let actor = make_actor (module CBStagnant) character in
+  let character = Character.create "hunter" (5,5) in
+  let actor = make_actor (module CBFindFood) character in
   actor::(rando num [])
 
 let make_random_terrain (w,h) ~num_hills ~num_holes ~num_food : (MBoard.tile * Posn.t) list =
@@ -86,6 +86,8 @@ let update_state (world : World.t) mCharacter action =
 		if posn <> posn' then
 		  MBoard.set_tile world.board EmptyTile posn
 	      end
+  | Eat -> (* Remove the food from the board by putting an empty tile *)
+     MBoard.set_tile world.board EmptyTile (MCharacter.posn mCharacter)
   | DoNothing -> ()
 
 let tick _ (world : World.t) =

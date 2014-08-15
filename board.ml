@@ -33,6 +33,8 @@ module type S = sig
     val serialize : t -> Ezjsonm.t
     (** Serialize to json *)
 
+    val deserialize: Ezjsonm.t -> t
+
 end
 
 module T = (BoardImpl : S with type t = BoardImpl.t)

@@ -11,6 +11,35 @@ let create seed =
 
 let seed dynamo = dynamo.seed
 
+let serialize dynamo =
+  Ezjsonm.dict [("seed", Ezjsonm.int dynamo.seed)]
+
+let deserialize json =
+  let seed = Ezjsonm.(get_int (find json ["seed"])) in
+  {seed}
+
+let save_game dynamo world file_name =
+  (* Serialize the dynamo and the world to a file.
+   Toplevel json has two keys: 'dyanmo' and 'world'.
+   *)
+  let dynamo_json = serialize dynamo in
+  let world_json = World.serialize world in
+  let json = Ezjsonm.dict [("dynamo", dynamo_json);
+			   ("world", world_json)]
+  in
+  (* Write it out *)
+  let channel = open_out file_name in
+  Ezjsonm.to_channel ~minify:false channel json;
+  Out_channel.close channel
+
+let load_game file_name : (t * World.t) =
+  let channel = open_in file_name in
+  let json = Ezjsonm.from_channel channel in
+  In_channel.close channel;
+  let dynamo = deserialize (Ezjsonm.find json ["dynamo"]) in
+  let world = World.deserialize (Ezjsonm.find json ["world"]) in
+  (dynamo, world)
+
 let make_actor (module B : CharacterBrain.S) character =
   (module struct
      module Brain = B

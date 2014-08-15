@@ -24,15 +24,8 @@ let respond ?(code=`OK) str =
 
 let send_game () =
 (* json the game then return it *)
-  let board_json = Board.serialize !world.board in
-  let (width, height) = Board.dimensions !world.board in
-  let json = dict [
-    ("width", int width);
-    ("height", int height);
-    ("board", board_json)
-  ] in
-  let ret = Ezjsonm.to_string json
-  in
+  let json = Board.serialize !world.board in
+  let ret = Ezjsonm.to_string json in
   respond ret
 
 let advance_game () =
@@ -57,11 +50,25 @@ let handler ~body:_ _sock req =
   | _ ->
      Server.respond_with_string ~code:`Not_found "Route not found"    
  
-let start_server port world_width world_height num_characters rand_seed () =
-  eprintf "Listening for HTTP on port %d\n" port;
+let start_server port world_width world_height num_characters rand_seed board_name () =
   eprintf "Initialized PRNG with random seed: %d\n" rand_seed;
-  dynamo := (Dynamo.create rand_seed);
-  world := (Dynamo.make_world !dynamo (world_width, world_height) num_characters);
+  (match board_name with
+     None -> begin
+	    eprintf "Generating new game width: %d height: %d" world_width world_height;
+	    dynamo := (Dynamo.create rand_seed);
+	    world := (Dynamo.make_world !dynamo (world_width, world_height) num_characters)
+	  end
+  | Some filename -> begin
+		     eprintf "Loading game from file %s" filename;
+		     let (dynamo', world') = Dynamo.load_game filename in
+		     let (w, h) = Board.dimensions world'.board in
+		     eprintf "Successfully loaded game.\n";
+		     eprintf "  World width: %d height: %d\n" w h;
+		     eprintf "  Game has %d characters\n" (List.length !(world'.actors));
+		     dynamo := dynamo';
+		     world := world'
+		   end);
+  eprintf "Listening for HTTP on port %d\n" port;
   Cohttp_async.Server.create ~on_handler_error:`Raise
     (Tcp.on_port port) handler
   >>= fun _ -> Deferred.never ()
@@ -81,6 +88,8 @@ let () =
        ~doc:"int Number of characters to place on the world. Defaults to 20"
      +> flag "-rand-seed" (optional_with_default (Core.Std.Float.to_int (Unix.time ())) int)
        ~doc:"int Seed for PRNG. Defaults to epoch time."
+     +> flag "-b" (optional file)
+       ~doc:"filename.json Board file to use for the game. If not provided generatees one."
     ) start_server
     
   |> Command.run

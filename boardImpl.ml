@@ -91,10 +91,43 @@ let serialize_tile tile = match tile with
   | Character c -> Ezjsonm.string c.name
   | Food _ -> Ezjsonm.string "Food" (* TODO XXX *)
 
+let deserialize_tile json =
+  let x = Ezjsonm.(get_int (find json ["x"])) in
+  let y = Ezjsonm.(get_int (find json ["y"])) in
+  let s = Ezjsonm.(get_string (find json ["t"])) in
+  let tile =
+    match s with
+      "Empty" -> EmptyTile
+    | "Hole" -> Hole
+    | "Hill" -> Hill
+    | "Food" -> Food 1 (* TODO XXX *)
+    | _ -> let c = Character.create s (x,y) in Character c (* TODO XXX *)
+  in
+  (x, y, tile)
+
 let serialize (b : t) =
   let indices = filter_board b ~f:(fun (x,y) -> b.board.(x).(y) <> EmptyTile)
   in
   let to_json (x,y) =
-    Ezjsonm.list (fun i->i) [Ezjsonm.int x; Ezjsonm.int y; serialize_tile b.board.(x).(y)]
+    Ezjsonm.dict [("x", Ezjsonm.int x);
+		  ("y", Ezjsonm.int y);
+		  ("t", serialize_tile b.board.(x).(y))]
   in
-  Ezjsonm.list (fun i -> i) (List.map ~f:to_json indices)
+  let board_json = Ezjsonm.list to_json indices in
+  let (w, h) = b.dimensions in
+  Ezjsonm.dict [("width", Ezjsonm.int w);
+		("height", Ezjsonm.int h);
+		("cells", board_json)]
+
+let deserialize json =
+  let width = Ezjsonm.(get_int (find json ["width"])) in
+  let height = Ezjsonm.(get_int (find json ["height"])) in
+  let cells = Ezjsonm.(get_list deserialize_tile (find json ["cells"])) in
+  let board = create (width, height) in
+  (* List elems are json list: x:int, y:int, string: tile *)
+  let process cell =
+    let (x, y, tile) = cell in
+    set_tile board tile (x, y)
+  in
+  List.iter ~f:process cells;
+  board

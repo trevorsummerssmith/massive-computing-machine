@@ -42,7 +42,7 @@ function callback_get_name(name) {
     var index = name.substring(4, name.length);
 
     // now we have an index!
-    var character = BOARD['board'][index];
+    var character = BOARD['cells'][index];
     console.log(name);
     console.log(index)
     console.log(character);
@@ -140,13 +140,12 @@ function draw_board(board) {
     }
 
     // Draw characters
-    var characters = board['board'];
+    var characters = board['cells'];
     $.each(characters, function (index, value) {
 	// Get the place and draw it.
-	var tx = value[0];
-	var ty = value[1];
-	// name is value[2]
-	var type = value[2];
+	var tx = value['x'];
+	var ty = value['y'];
+	var type = value['t'];
 	if (type == "Hole") {
 	    draw_hole(tx, ty);
 	}

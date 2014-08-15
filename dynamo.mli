@@ -21,3 +21,7 @@ val tick : t -> World.t -> World.t
       - Collect all actions and environmental changes
       - the Dynamo applies these changes
 *)
+
+val save_game : t -> World.t -> string -> unit
+
+val load_game : string -> (t * World.t)

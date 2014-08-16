@@ -20,7 +20,11 @@ let respond ?(code=`OK) str =
      that first prints out the response
    *)
   eprintf "%d: %s\n\n" (Cohttp.Code.code_of_status code) str;
-  Server.respond_with_string ~code:code str
+  (* Add Access-Control-Allow-Origin: * header to let me develop locally
+   and not have to serve the html from here. *)
+  let headers = Cohttp.Header.init () in
+  let headers = Cohttp.Header.add headers "Access-Control-Allow-Origin" "*" in
+  Server.respond_with_string ~code:code ~headers:headers str
 
 let send_game () =
 (* json the game then return it *)

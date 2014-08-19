@@ -3,12 +3,28 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="styles.css">
     <title>ok then</title>
   </head>
   <body>
     <div>
-      <a href="#" onclick="advance_game()">NEXT</a>
-      <a href="#" onclick="play_pause()">PLAY / PAUSE (p)</a>
+      <span id="game_controls">
+	<a href="#" onclick="advance_game()">NEXT</a>
+	<a href="#" onclick="play_pause()">PLAY / PAUSE (p)</a>
+      </span>
+      <a href="#" onclick="edit_mode()">EDIT MODE</a>
+    </div>
+    <div id="edit_controls">
+      <h2>Edit</h2>
+      <ul>
+	<li><a href="#" onclick="set_tile_type(TILE_TYPES.EMPTY_TILE)">EmptyTile</a></li>
+	<li><a href="#" onclick="set_tile_type(TILE_TYPES.HOLE)">Hole</a></li>
+	<li><a href="#" onclick="set_tile_type(TILE_TYPES.HILL)">Hill</a></li>
+	<li><a href="#" onclick="set_tile_type(TILE_TYPES.FOOD)">Food</a></li>
+	<li><a href="#" onclick="set_tile_type(TILE_TYPES.CHARACTER)">Character</a></li>
+	<li>----</li>
+	<li><a href="#" onclick="cb_save_board()">Save Board</a></li>
+      </ul>
     </div>
     <div>
       <span>Info: </span><span id="info-place" />

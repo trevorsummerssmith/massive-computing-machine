@@ -7,6 +7,9 @@ var TILE_BORDER_HEIGHT = 1;
 var TILE_WIDTH = DRAWN_TILE_WIDTH - TILE_BORDER_WIDTH;
 var TILE_HEIGHT = DRAWN_TILE_HEIGHT - TILE_BORDER_HEIGHT;
 
+// Global variables
+var game;
+
 function get_game() {
     var jqXHR = $.ajax({
 	dataType: "json",
@@ -21,7 +24,14 @@ function advance_game () {
 	url: SERVER_URL + "/advance-game", async: false
     });
     BOARD = jqXHR.responseJSON; // XXX
+    console.log("Received from ajax: " + jqXHR);
     return draw_board(jqXHR.responseJSON); // this shouldn't draw the board
+}
+
+function canvas_to_tile_coords(x, y) {
+    var tile_x = Math.floor(x / DRAWN_TILE_WIDTH);
+    var tile_y = Math.floor(y / DRAWN_TILE_HEIGHT);
+    return [tile_x, tile_y];
 }
 
 function tile_to_canvas_coords(tile_x, tile_y) {
@@ -55,13 +65,12 @@ function draw_character(tx,ty,index) {
     var coords = tile_to_canvas_coords(tx, ty);
     console.log("Drawing character: " + "tx: " + tx + " ty: " + ty + " x: " + coords[0] + "y: " + coords[1]);
     $("#canvas-world").drawRect({
-	layer: true,
 	name: BOX_LAYER_PREFIX + index, // Note: name cannot be an integer
 	fillStyle: "#ff00ff",
 	x: coords[0], y: coords[1],
 	width: TILE_WIDTH, height: TILE_HEIGHT,
 	fromCenter: false, // always use top left coords
-	click: function(layer) { callback_get_name(layer.name); }
+	//click: function(layer) { callback_get_name(layer.name); }
     });
 }
 
@@ -76,6 +85,18 @@ function draw_special_character(tx, ty) {
 	radius: 8,
 	x: coords[0]-4, y: coords[1]-3,
 	fromCenter: false
+    });
+}
+
+function draw_empty_tile(tx, ty) {
+    var coords = tile_to_canvas_coords(tx, ty);
+    console.log("Drawing empty tile");
+    // XXX TODO This should probably call 'clear'?
+    $("#canvas-world").drawRect({
+	fillStyle: "#ffffff",
+	x: coords[0], y: coords[1],
+	width: TILE_WIDTH, height: TILE_HEIGHT,
+	fromCenter: false // always use top left coords
     });
 }
 
@@ -121,25 +142,29 @@ function draw_board(board) {
     // board object as made from the json response
     // Draw a 10px by 10px grid
     // boxes are 9px by 9px, then grid
-    for (var i=0; i < 1000; i+= 10) {
-	$("#canvas-world").drawLine({
-	    strokeWidth: 1,
-	    strokeStyle: '#ccc',
-	    x1: 0, y1: i,
-	    x2: 1000, y2: i
-	});
-    }
 
-    for (var i=0; i < 1000; i+= 10) {
-	$("#canvas-world").drawLine({
-	    strokeWidth: 1,
-	    strokeStyle: '#ccc',
-	    x1: i, y1: 0,
-	    x2: i, y2: 1000
-	});
-    }
+    // Add the grid lines
+    $('#canvas-world').draw({
+	fn: function(ctx) {
+            ctx.strokeStyle = '#ccc';
+	    for (var i=0; i < 1000; i+= 10) {
+		// Horizontal lines
+		ctx.moveTo(i,0);
+		ctx.lineTo(i,1000);
+
+		// Vertical lines
+		ctx.moveTo(0,i);
+		ctx.lineTo(1000,i);
+	    }
+	    // Note: It is important the stroke call is here, at the end
+	    // of all the the ctx lineTo cmds. It is extremely faster to
+	    // treat the lineTos as a single polyline under the hood.
+	    ctx.stroke();
+	}
+    });
 
     // Draw characters
+    console.log(board);
     var characters = board['cells'];
     $.each(characters, function (index, value) {
 	// Get the place and draw it.
@@ -184,6 +209,91 @@ function play_pause() {
 	clearInterval(PLAY_INTERVAL_TIMER);
 	PLAY_INTERVAL_TIMER = PLAY_INTERVAL_TIMER_NOT_SET;
     }    
+}
+
+var TILE_TYPES = {
+    EMPTY_TILE : 0,
+    HOLE : 1,
+    HILL : 2,
+    FOOD : 3,
+    CHARACTER : 4
+};
+
+function tile_to_str(tile) {
+    switch(tile) {
+    case TILE_TYPES.EMPTY_TILE:
+	return "EmptyTile";
+    case TILE_TYPES.HOLE:
+	return "Hole";
+    case TILE_TYPES.HILL:
+	return "Hill";
+    case TILE_TYPES.FOOD:
+	return "Food";
+    case TILE_TYPES.CHARACTER:
+	return "Character";
+    default:
+	console.log("This should never happen");
+    }
+};
+
+var CURRENT_TILE_TYPE = TILE_TYPES.EMPTY_TILE;
+
+function set_tile_type(type) {
+    console.log("Setting current tile type to: " + type);
+    CURRENT_TILE_TYPE = type;
+}
+
+function edit_mode() {
+    // Make sure we're not playing the game.
+    clearInterval(PLAY_INTERVAL_TIMER);
+    PLAY_INTERVAL_TIMER = PLAY_INTERVAL_TIMER_NOT_SET;
+
+    // Show the stuff.
+    $("#edit_controls").css({"visibility": "visible"});
+
+    // Hide the other stuff.
+    // TODO
+
+    // And layer that will get events
+    $("#canvas-world").drawRect({
+	layer: true,
+	fillStyle: 'rgba(100, 0,0, 0.2)',
+	x: 0,
+	y: 0,
+	width: 2000,
+	height: 2000,
+	click: function (layer) {
+	    var x = layer.eventX;
+	    var y = layer.eventY;
+	    var tileCoords = canvas_to_tile_coords(x, y);
+	    var tileX = tileCoords[0];
+	    var tileY = tileCoords[1];
+
+	    console.log("Adding: " + tile_to_str(CURRENT_TILE_TYPE) + " at " +
+			"x: " + x + " y: " + y +
+			" tileX: " + tileX + " tileY: " + tileY);
+
+	    // Now that we're done -- redraw
+	    var cell = {'x':tileX, 'y':tileY, 't' : tile_to_str(CURRENT_TILE_TYPE)};
+	    BOARD['cells'].push(cell);
+	    draw_board(BOARD);
+	}
+    });
+}
+
+function cb_save_board() {
+    var json = JSON.stringify(BOARD);
+    console.log("Sending board to server...")
+    console.log(json);
+    var jqXHR = $.ajax({
+	dataType: "json",
+	url: SERVER_URL + "/save-game",
+	data: json,
+	type: 'POST',
+	async: false
+    });
+    // Return should be {'filename': name}
+    alert("Saved board to: '" + jqXHR.responseJSON['filename'] + "'");
 }
 
 /** Keyboard Shortcuts

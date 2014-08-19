@@ -1,0 +1,8 @@
+#edit_controls {
+    position: absolute;
+    top: 10px;
+    /* This obviously assumes a given board size. */
+    left: 1000px;
+    display: block;
+    visibility: hidden;
+}

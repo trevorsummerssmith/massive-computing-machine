@@ -40,12 +40,6 @@ let load_game file_name : (t * World.t) =
   let world = World.deserialize (Ezjsonm.find json ["world"]) in
   (dynamo, world)
 
-let make_actor (module B : CharacterBrain.S) character =
-  (module struct
-     module Brain = B
-     let character = character
-   end : Actor.S)
-
 let make_randos posn num : (module Actor.S) list =
   (** Make a list of randomly positioned characters *)
   let rec rando num acc =
@@ -53,12 +47,12 @@ let make_randos posn num : (module Actor.S) list =
       let name = Util.random_name () in
       let posn' = Util.random_posn posn in
       let character = Character.create name posn' in
-      let actor = make_actor (module CBRandom) character in
+      let actor = Actor.make (module CBRandom) character in
       rando (num-1) (actor::acc)
     else acc
   in
   let character = Character.create "hunter" (5,5) in
-  let actor = make_actor (module CBFindFood) character in
+  let actor = Actor.make (module CBFindFood) character in
   actor::(rando num [])
 
 let make_random_terrain (w,h) ~num_hills ~num_holes ~num_food : (MBoard.tile * Posn.t) list =

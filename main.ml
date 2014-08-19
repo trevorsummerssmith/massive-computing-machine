@@ -38,9 +38,20 @@ let advance_game () =
   world := world';
   send_game ()
 
+let save_file_name prefix =
+  let time = Time.now () in
+  let time_str = Time.format time "%Y-%m-%d_%H-%M-%S" in
+  String.concat [prefix; "-"; time_str; ".json"]
+
+let save_game prefix world' =
+  (* Receive a game world and save it to disk *)
+  let filename = save_file_name prefix in
+  Dynamo.save_game !dynamo world' filename;
+  respond (String.concat ["{\"filename\" : \""; filename; "\"}"])
+
 (* end game *)
 
-let handler ~body:_ _sock req =
+let handler ~(body:Cohttp_async.Body.t) _sock req =
   print_request req;
   let uri = Cohttp.Request.uri req in
   match Uri.path uri with 
@@ -51,6 +62,31 @@ let handler ~body:_ _sock req =
   |> Server.respond_with_string
   | "/game" -> send_game ()
   | "/advance-game" -> advance_game ()
+  | "/save-game" -> begin
+		    (* There's a ton of logic in here right now because this
+                       gets a board from the front end (not a world with actors)
+		       Later on, when I need it, I'll change the edit front end
+		       to deal with the actor stuff as well, then this will get
+		       cleaned up. *)
+		    Cohttp_async.Body.to_string body
+		    >>= fun s ->
+		    Core.Std.eprintf "Got: %s\n" s;
+		    let board = Board.deserialize (Ezjsonm.from_string s) in
+		    (* We have a board choose some defaults (for now) for the
+		     characters *)
+		    let f posn = match (Board.get_tile board posn) with
+			Board.Character _ -> true
+		      | _ -> false in
+		    let character_posns = Board.filter_board board ~f:f in
+		    let make_actors p =
+		      (* Everyone is random for now. *)
+		      match (Board.get_tile board p) with
+			Board.Character c -> Actor.make (module CBRandom) c
+		      | _ -> failwith "Not possible"
+		    in
+		    let actors = ref (List.map ~f:make_actors character_posns) in
+		    save_game "ok" {board; actors}
+		  end
   | _ ->
      Server.respond_with_string ~code:`Not_found "Route not found"    
  
